@@ -3,7 +3,9 @@ import net
 import checkNet
 import sms as SMS
 
-
+#本示例演示将分开到达设备的两条长两条短信合并为一条短信
+#本例演示要求短信索引值0和短信索引值1的短信同一条长短信的内容
+    
 class QuecSMS():
 
     def __init__(self):
@@ -39,13 +41,7 @@ class QuecSMS():
         
     def sms_replace_data_index(self,index,data):
         self.message = self.message[:index] + data + self.message[index+len(data):]
-        
-    #    message_ref        ：短信参考标识，同一个标识表明为同一条短信
-    #    message_total_num  ：此条长短信总条数
-    #    message_seq        ：此条短信在长短信中的序号
-    #    sub_message_data   ：词条短信的内容
-    #    pdu_tye            ：PDU类型，bit 6标记是否包含用户报文头，长短信需要
-    #    sub_message_len    ：此条短信内容长度
+    
     def sms_append_sub_message_data(self,data):
         self.message = self.message + data
         
@@ -53,10 +49,24 @@ class QuecSMS():
         return self.sms.decodePdu(self.message,self.sms.getPduLength(self.message))
     
     def sms_get_message_info(self,index):
+        """
+        ：param index    ：短信索引值
+        ：tyoe  index    ：整形
         
+        ：return         ：元组类型
+        元组内容：
+        （message_ref，message_total_num，message_seq，sub_message_data，pdu_tye，sub_message_len）
+        
+        ：message_ref        ：短信参考标识，同一个标识表明为同一条短信
+        ：message_total_num  ：此条长短信总条数
+        ：message_seq        ：此条短信在长短信中的序号
+        ：sub_message_data   ：词条短信的内容
+        ：pdu_tye            ：PDU类型，bit 6标记是否包含用户报文头，长短信需要
+        ：sub_message_len    ：此条短信内容长度
+        
+        """
         message0=self.sms.searchPduMsg(index)
         self.message = message0
-        #获取SCA
         sca_num  = int(message0[0:2],16)
         data_len = 2
         sca      = message0[data_len:data_len+sca_num*2]
@@ -90,28 +100,33 @@ class QuecSMS():
 if __name__ == '__main__':
     sms1 = QuecSMS()
     sms2 = QuecSMS()
-    #示例中索引0 、1为长短新的第一条第二条数据，以此为例展示长短信的合并
-    #长短信合并只能用PDU方式读取解码合并，TEXT方式无法判断短信顺序
     
+    # 读取短信索引值0的短信内容
     message0=list(sms1.sms_get_message_info(0))
-    message1=list(sms2.sms_get_message_info(1))
-    #合成一条短信步骤
     
-    # 1、设置PDU_type 为用户数据不包含头信息，合成一条设置成短信内容没有头部信息
+    # 读取短信索引值1的短信内容
+    message1=list(sms2.sms_get_message_info(1))
+    print("Get Messge 0 {}".format(message0))
+    print("Get Messge 1 {}".format(message1))
+    if message0[0] != message1[0]:
+        print("Message 0 and Message are not the content data of the same long SMS!")
+        exit
+    # 1、设置PDU_type为用户数据不包含头信息
     pdu_type = "{:0>2X}".format(message0[3]&0xBF)
-    # pdu_type 起始位置18
+    # pdu_type起始位置为18
     message = sms1.sms_replace_data_index(18,pdu_type)
     
-    # 2、将后续的字串内容取出追加到第一条信息用户数据之后
+    # 2、将短信索引值为1的短信的用户数据追加到短信索引值为0的用户数据后
     sms1.sms_append_sub_message_data(message1[5])
     
     
-    # 3、短信长度起始位置56，修改长度为原本长度加上追加的字串长度
+    # 3、将短信索引值为0的短信的用户数据长度加上短信索引值为1的短信用户数据长度
+    # 长度位置为56
     message0[4]=message0[4]+message1[4]
     message_len = "{:0>2X}".format(message0[4])
     sms1.sms_replace_data_index(56,message_len)
     
-    # 4、去掉用户数据报文头
+    # 4、去掉短信索引值为0的短信的用户数据报文头
     sms1.sms_delete_user_data_head()
     
     # 5、解码修改后的PDU串
