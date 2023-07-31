@@ -98,39 +98,29 @@ class QuecSMS():
         message_seq = int(sub_message_head[10:12],16)
         return message_ref,message_total_num,message_seq,pdu_tye,sub_message_len,sub_message_data
 if __name__ == '__main__':
+    sms0 = QuecSMS()
     sms1 = QuecSMS()
-    sms2 = QuecSMS()
     
     # 读取短信索引值0的短信内容
-    message0=list(sms1.sms_get_message_info(0))
+    message0=list(sms0.sms_get_message_info(0))
     
     # 读取短信索引值1的短信内容
-    message1=list(sms2.sms_get_message_info(1))
+    message1=list(sms1.sms_get_message_info(1))
     print("Get Messge 0 {}".format(message0))
     print("Get Messge 1 {}".format(message1))
     if message0[0] != message1[0]:
-        print("Message 0 and Message are not the content data of the same long SMS!")
+        print("Message 0 and Message 1 are not the content data of the same long SMS!")
         exit
-    # 1、设置PDU_type为用户数据不包含头信息
-    pdu_type = "{:0>2X}".format(message0[3]&0xBF)
-    # pdu_type起始位置为18
-    message = sms1.sms_replace_data_index(18,pdu_type)
+    # 解码message0的PDU串
+    message0_pdu=list(sms0.sms_decode_pdu_message())
+    # 解码message1的PDU串
+    message1_pdu=(sms1.sms_decode_pdu_message())
     
-    # 2、将短信索引值为1的短信的用户数据追加到短信索引值为0的用户数据后
-    sms1.sms_append_sub_message_data(message1[5])
-    
-    
-    # 3、将短信索引值为0的短信的用户数据长度加上短信索引值为1的短信用户数据长度
-    # 长度位置为56
-    message0[4]=message0[4]+message1[4]
-    message_len = "{:0>2X}".format(message0[4])
-    sms1.sms_replace_data_index(56,message_len)
-    
-    # 4、去掉短信索引值为0的短信的用户数据报文头
-    sms1.sms_delete_user_data_head()
-    
-    # 5、解码修改后的PDU串
-    message=sms1.sms_decode_pdu_message()
-    
-    print("Get meger message : {}".format(message))
+    # 合并短信
+    #判断messge 0 和 message 1的短信序列号那个考前
+    if message0[2] < message1[2]:
+        message_merge=message0_pdu[1]+message1_pdu[1]
+    else:
+        message_merge=message1_pdu[1]+message0_pdu[1]
+    print("Get Merger Message is {}".format(message_merge))
     
