@@ -15,6 +15,21 @@ class QuecSMS():
         self.sms.setCallback(self.__SMS_Call_back)
         self.message=""
 
+    def sms_deal_phone_number(self,args):
+        data=enumerate(args)
+        data_str1=""
+        data_str2=""
+        data_str3=""
+        for index,value in data:
+            if index % 2 == 0:
+                data_str1=data_str1+value
+            else:
+                data_str2=data_str2+value
+        for i in range(0,len(data_str1)):
+            data_str3=data_str3+data_str2[i]
+            data_str3=data_str3+data_str1[i]
+        return data_str3
+        
     def sms_display(self):
         self.__log("Get Message Loction : {}".format(self.sms.getSaveLoc()))
         sms.setSaveLoc("ME", "ME", "ME")
@@ -67,24 +82,49 @@ class QuecSMS():
         """
         message0=self.sms.searchPduMsg(index)
         self.message = message0
-        sca_num  = int(message0[0:2],16)
+        sca_num  = int(message0[0:2],16) - 1
         data_len = 2
+        addr_type= message0[data_len:data_len+1*2]
+        data_len = data_len+1*2
+        
         sca      = message0[data_len:data_len+sca_num*2]
+        # 电话号码高低位需要转换
+        sca = self.sms_deal_phone_number(sca)
+
+        if sca_num % 2 == 1:
+             print("Get SCA phone {}".format(sca[:-1]))
+        else:
+             print("Get SCA phone {}".format(sca))
+
         data_len = data_len+sca_num*2
+
         pdu_tye   = int(message0[data_len:data_len+1*2],16)
-        
         data_len = data_len+1*2
-        mr       = message0[data_len:data_len+1*2]
-        
+
+        oa_num   = int(message0[data_len:data_len+1*2],16)
         data_len = data_len+1*2
-        oa       = message0[data_len:data_len+sca_num*2]
-        
-        data_len = data_len+sca_num*2
+        oa_addr_type   = message0[data_len:data_len+1*2]
+        data_len = data_len+1*2
+
+        if oa_num % 2 == 1:
+             oa_num_t   = int((oa_num + 1)/2)
+        else:
+             oa_num_t   = int((oa_num )/2)
+
+        oa       = message0[data_len:data_len+oa_num_t*2]
+        # 电话号码高低位需要转换
+        oa       = self.sms_deal_phone_number(oa)
+
+        if oa_num % 2 == 1:
+             print("Get OA phone {}".format(oa[:-1]))
+        else:
+             print("get OA phone {}".format(oa))
+
+        data_len = data_len+oa_num_t*2
         pid      = message0[data_len:data_len+1*2]
         
         data_len = data_len+1*2
         dcs      = message0[data_len:data_len+1*2]
-        
         data_len = data_len+1*2
         scts     = message0[data_len:data_len+7*2]
         data_len = data_len+7*2
@@ -92,11 +132,21 @@ class QuecSMS():
         data_len = data_len+1*2
         sub_message_head = message0[data_len:data_len+6*2]
         data_len = data_len+6*2
+
+        # 或短信用户数据
         sub_message_data = message0[data_len:data_len+sub_message_len*2]
-        message_ref = int(sub_message_head[6:8],16)
-        message_total_num = int(sub_message_head[8:10],16)
-        message_seq = int(sub_message_head[10:12],16)
-        return message_ref,message_total_num,message_seq,pdu_tye,sub_message_len,sub_message_data
+
+        #长短信
+        if ((pdu_tye & 0x40 ) >> 6) == 1:
+                #长短信,处理长短信用户报文头
+                message_ref = int(sub_message_head[6:8],16)
+                message_total_num = int(sub_message_head[8:10],16)
+                message_seq = int(sub_message_head[10:12],16)
+                return message_ref,message_total_num,message_seq,pdu_tye,sub_message_len,sub_message_data
+        else:
+             # 短短信
+             return 0,1,1,pdu_tye,sub_message_len,sub_message_data
+             
 if __name__ == '__main__':
     sms0 = QuecSMS()
     sms1 = QuecSMS()
