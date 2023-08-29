@@ -1,13 +1,11 @@
 '''
-File: i2c_aht10.py
+File: i2c_qma7981.py
 Project: i2c
-File Created: Monday, 28th December 2020 5:17:28 pm
-Author: chengzhu.zhou
+File Created: Sunday, 11th March 2022 3:51:22 pm
+Author: elian.wang
+
 -----
-Last Modified: Tuesday, 29th December 2020 9:01:35 pm
-Modified By: chengzhu.zhou
------
-Copyright 2020 - 2020 quectel
+Copyright 2022 - 2022 quectel
 '''
 
 #import log
