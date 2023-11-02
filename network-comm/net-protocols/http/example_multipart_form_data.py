@@ -22,4 +22,4 @@ with open('/usr/test.png', 'rb') as f:
 data += b'\r\n'
 data += b'--' + bytes(boundary.encode()) + b'--'
 
-request.post(url, data=data)
+request.post(url, headers=headers, data=data)
