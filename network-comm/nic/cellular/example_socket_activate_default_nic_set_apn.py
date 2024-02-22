@@ -17,21 +17,21 @@ import usocket
 import dataCall
 from misc import Power
 
-# 用户需要配置的APN信息，根据实际情况修改
+# Configure the APN information according to your actual needs
 usrCfg = {'apn': '3gnet', 'username': '', 'password': ''}
 
 
 def checkAPN():
-    # 获取第一路网卡的APN信息，确认当前使用的是否是用户指定的APN
+    # Get the APN information of the first cellular NIC and check if the current one is the one you specified
     pdpCtx = dataCall.getPDPContext(1)
     if pdpCtx != -1:
         if pdpCtx[1] != usrCfg['apn']:
-            # 如果不是用户需要的APN，使用如下方式配置
+            # If it is not the APN you need, configure it as follows
             ret = dataCall.setPDPContext(1, 0, usrCfg['apn'], usrCfg['username'], usrCfg['password'], 0)
             if ret == 0:
                 print('APN configuration successful. Ready to restart to make APN take effect.')
                 print('Please re-execute this program after restarting.')
-                # 重启后按照配置的信息进行拨号
+                # Make a data call according to the configured information after the module reboots
                 Power.powerRestart()
             else:
                 print('APN configuration failed.')
@@ -52,27 +52,27 @@ def main():
     stage, state = checkNet.waitNetworkReady(20)
     if stage == 3 and state == 1:
         print('Network connected successfully.')
-        # 创建一个socket对象
+        # Create a socket object
         sock = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-        # 解析域名
+        # Resolve the domain name
         try:
             sockaddr = usocket.getaddrinfo('python.quectel.com', 80)[0][-1]
         except Exception:
             print('Domain name resolution failed.')
             sock.close()
             return
-        # 建立连接
+        # Connect to the server
         sock.connect(sockaddr)
-        # 向服务端发送消息
+        # Send data to the server
         ret = sock.send('GET /News HTTP/1.1\r\nHost: python.quectel.com\r\nAccept-Encoding: deflate\r\nConnection: keep-alive\r\n\r\n')
         print('send {} bytes'.format(ret))
 
-        # 接收服务端消息
+        # Receive data from the server
         data = sock.recv(256)
         print('recv {} bytes:'.format(len(data)))
         print(data.decode())
 
-        # 关闭连接
+        # Close the connection
         sock.close()
     else:
         print('Network connected failed, stage={}, state={}'.format(stage, state))

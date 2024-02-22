@@ -1,22 +1,36 @@
+# Copyright (c) Quectel Wireless Solution, Co., Ltd.All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import checkNet
 import usocket
 import dataCall
 from misc import Power
 
-# 用户需要配置的APN信息，根据实际情况修改
+# Configure the APN information according to your actual needs
 usrCfg = {'apn': '3gnet', 'username': '', 'password': ''}
 
 def checkAPN():
-    # 获取第一路网卡的APN信息，确认当前使用的是否是用户指定的APN
+    # Get the APN information of the first cellular NIC and check if the current one is the one you specified
     pdpCtx = dataCall.getPDPContext(1)
     if pdpCtx != -1:
         if pdpCtx[1] != usrCfg['apn']:
-            # 如果不是用户需要的APN，使用如下方式配置
+            # If it is not the APN you need, configure it as follows
             ret = dataCall.setPDPContext(1, 0, usrCfg['apn'], usrCfg['username'], usrCfg['password'], 0)
             if ret == 0:
                 print('APN configuration successful. Ready to restart to make APN take effect.')
                 print('Please re-execute this program after restarting.')
-                # 重启后按照配置的信息进行拨号
+                # Make a data call according to the configured information after the module reboots
                 Power.powerRestart()
             else:
                 print('APN configuration failed.')
