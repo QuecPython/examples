@@ -2,6 +2,7 @@
 
 import ble
 import utime
+import osTimer
 import _thread
 import checkNet
 from queue import Queue
@@ -385,8 +386,23 @@ class BleClient(object):
         msg_queue.put(args)
 
 
+pair_timer = osTimer()
+pair_timer_status = 0  # 0-not running, 1-running
+
+
+def pair_timer_callback(args):
+    global pair_timer_status
+    print('[pair timer cb]ble smp start pair...')
+    pair_timer_status = 0
+    ret = ble.smpStartPair(ble_client.connect_id)
+    if ret != 0:
+        print('smpStartPair execution failed.')
+
+
 def ble_gatt_client_event_handler():
     global msg_queue
+    global pair_timer
+    global pair_timer_status
     old_time = 0
 
     while True:
@@ -463,10 +479,33 @@ def ble_gatt_client_event_handler():
                 addr_str = '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}'.format(addr[0], addr[1], addr[2], addr[3], addr[4], addr[5])
                 print('connect_id : {:#x}, connect_addr : {}'.format(ble_client.connect_id, addr_str))
 
-                print('[callback] ble smp start pair...')
-                ret = ble.smpStartPair(ble_client.connect_id)
-                if ret != 0:
-                    print('[callback] ble smp start pair failed!')
+                pair_device_infos = ble.smpGetPairedDevInfo()
+                pair_device_nums = 0
+                if pair_device_infos != -1:
+                    pair_device_nums = len(pair_device_infos)
+                if pair_device_nums == 0:
+                    print('[1]First pairing, ble smp start pair...')
+                    ret = ble.smpStartPair(ble_client.connect_id)
+                    if ret != 0:
+                        print('smpStartPair execution failed.')
+                else:
+                    print('paired list({}):'.format(pair_device_nums))
+                    i = 0
+                    for dev_addr in pair_device_infos:
+                        i += 1
+                        dev_addr_str = '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}'.format(dev_addr[0], dev_addr[1], dev_addr[2], dev_addr[3], dev_addr[4], dev_addr[5])
+                        print("device{} mac:{}".format(i, dev_addr_str))
+
+                    if addr in pair_device_infos:
+                        print('Wait for automatic pairing, timeout is 1200ms.')
+                        pair_timer.start(1200, 0, pair_timer_callback)
+                        pair_timer_status = 1
+                    else:
+                        print('[2]First pairing, ble smp start pair...')
+                        ret = ble.smpStartPair(ble_client.connect_id)
+                        if ret != 0:
+                            print('smpStartPair execution failed.')
+
             else:
                 print('ble connect failed.')
                 break
@@ -577,7 +616,15 @@ def ble_gatt_client_event_handler():
                 ble_client.chara_descriptor_count = 0
                 ble_client.characteristic_index = 0
                 ble_client.gatt_statue = gatt_status.BLE_GATT_DISCOVER_SERVICE
-
+                '''
+                For scenarios that do not require pairing function (or do not support pairing), 
+				after receiving the BLE_GATT_START_DISCOVER_SERVICE_IND event, you can perform 
+				operations such as discovering services; for scenarios that support pairing and 
+				require pairing, since the pairing process needs to be performed first after 
+				establishing a connection, you need Wait for the pairing process to end before 
+				performing operations such as discovering the service. When the pairing is completed, 
+				the BLE_GATT_SMP_COMPLETE_IND event will be received.
+                '''
                 # if ble_client.discover_service_mode == 0:
                 #     print('execute the function discover_all_service.')
                 #     ret = ble_client.discover_all_service()
@@ -587,7 +634,6 @@ def ble_gatt_client_event_handler():
                 # if ret != 0:
                 #     print('Execution result: Failed.')
                 #     ble_client.gatt_close()
-                #     ble_client.release()
                 #     break
         elif event_id == event.BLE_GATT_DISCOVER_SERVICE_IND:
             print('')
@@ -829,6 +875,11 @@ def ble_gatt_client_event_handler():
             print('event_id : BLE_GATT_SMP_COMPLETE_IND, status = {}'.format(status))
             if status == 0:
                 print('[callback] ble smp pairing complete.')
+                if pair_timer_status == 1:
+                    print('stop pair timer.')
+                    pair_timer.stop()
+                    pair_timer_status = 0
+                pair_timer.delete_timer()
                 if ble_client.gatt_statue == gatt_status.BLE_GATT_DISCOVER_SERVICE:
                     if ble_client.discover_service_mode == 0:
                         print('execute the function discover_all_service.')
@@ -839,7 +890,6 @@ def ble_gatt_client_event_handler():
                     if ret != 0:
                         print('Execution result: Failed.')
                         ble_client.gatt_close()
-                        ble_client.release()
                         break
             else:
                 print('[callback] ble smp pairing fail.')
@@ -908,13 +958,11 @@ def main():
     #         ble_status = ble_client.gatt_get_status()
     #         if ble_status == 1:
     #             ble_client.gatt_close()
-    #         ble_client.release()
     #         break
     #     else:
     #         ble_status = ble_client.gatt_get_status()
     #         if ble_status == 0: # stopped
     #             print('BLE connection has been disconnected.')
-    #             ble_client.release()
     #             break
 
 if __name__ == '__main__':
