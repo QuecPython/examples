@@ -52,6 +52,9 @@ def psm_failed_handle(delay_time, autosleep_timer):
 
 
 if __name__ == '__main__':
+    """
+    测试该脚本功能可将文件重命名为 main.py 烧录进模块中进行测试，模块 PSM 休眠唤醒后即可自动执行脚本中的功能。
+    """
     pm.autosleep(0)
     if pm.get_psm_time()[0] == 1:
         if pm.set_psm_time(0) is True:
