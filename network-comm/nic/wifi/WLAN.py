@@ -89,7 +89,7 @@ class ESP8266:
             return RET_CODE.RET_RESPONSE_ERROR_CODE
         return RET_CODE.RET_SUCCESS_CODE
 
-    # station模式
+	# station模式
     def station(self, user, password):
         self.clear_remain()
         __head = 'F3'
@@ -102,7 +102,7 @@ class ESP8266:
         self.__Socket_UDP(__head, self.__message)
         return self.__socket_reponse()
 
-    #ap 模式
+	#ap 模式
     def ap(self, user, password):
         self.clear_remain()
         __head = 'F2'
@@ -116,7 +116,7 @@ class ESP8266:
         self.__Socket_UDP(__head, self.__message)
         return self.__socket_reponse()
 
-    # web配网模式
+	# web配网模式
     def web_config(self, user, password):
         self.clear_remain()
         __head = 'F0'
@@ -135,7 +135,7 @@ class ESP8266:
         self.__err = 0
         self.__value = None
 
-    # 查询网卡状态
+	# 查询网卡状态
     def status(self):
         self.clear_remain()
         self.__Socket_UDP('F1', '0')
@@ -167,7 +167,7 @@ class ESP8266:
         self.__Socket_UDP(__head, self.__message)
         return self.__socket_reponse()
 
-    # 配置查询
+	# 配置查询
     def config(self, param):
         self.clear_remain()
         __head = 'F7'
@@ -177,13 +177,13 @@ class ESP8266:
             return RET_CODE.RET_TIMEOUT_CODE
         return self.__value[2]
 
-    #添加路由信息
+	#添加路由信息
     def router_add(self, ip='192.168.4.1', mask='255.255.255.0'):
         self.ip = ip
         self.mask = mask
         return slip.router_add('192.168.4.1', '255.255.255.0')
 
-    # 获取slip的网络配置
+	# 获取slip的网络配置
     def ipconfig(self):
         return slip.ipconfig()
 
@@ -204,14 +204,14 @@ class ESP8266:
             return RET_CODE.RET_SUCCESS_CODE
         return RET_CODE.RET_PARAM_ERROR_CODE
     
-    # 释放slip网卡
+	# 释放slip网卡
     def stop(self):
         _thread.stop_thread(self.__threadid)
         slip.destroy()
 	self.__sock.close()#释放socket
         return RET_CODE.RET_SUCCESS_CODE
 
-    # 封装tlv数据包
+	# 封装tlv数据包
     def __pack_tlv_format(self, head, content):
         self.head = head
         self.content = content
@@ -221,7 +221,7 @@ class ESP8266:
         tlv_pack = self.head+len_str+self.content
         return tlv_pack
 
-    # 解码tlv数据包
+	# 解码tlv数据包
     def __unpack_tlv_format(self, msg):
         self.msg = str(msg)
         tag = self.msg[0:2]
@@ -233,8 +233,7 @@ class ESP8266:
         unpack = (tag,length,value)
         return unpack
 	    
-
-    # socket通信(UDP)模块
+	# socket通信(UDP)模块
     def __Socket_UDP(self, head, content):
         self.head = head
         self.content = content
@@ -252,9 +251,11 @@ class ESP8266:
         data = self.__queue.get()
         self.__wait_resp = 0
         return data
+    
     def __def__(self):
 	self.stop()
-    # socket通信(UDP)模块
+   
+	# socket通信(UDP)模块
     def __Socket_Thread(self):
         while True:
             try:
