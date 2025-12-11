@@ -18,6 +18,8 @@
 #   23/01/2024      Francis          Add timeout handling
 #   ----------      -----------      ----------------------------------------------------------------------------------  #
 #   06/08/2025      Sirius           Fix port occupation issue by adding socket release in stop function, retaining del
+#   ----------      -----------      ----------------------------------------------------------------------------------  #
+#   11/12/2025      Sirius           Add UART configuration parameters during SLIP initialization
 # *********************************************************************************************************************  #
 
 import usocket
@@ -47,7 +49,7 @@ class ESP8266:
     AP = 0  # SLIP_INNER
     STA = 1 # SLIP_OUTER
 
-    def __init__(self, uart=UART.UART2, mode=STA, callback=None):
+    def __init__(self, uart=UART.UART2, mode=STA, callback=None,baudrate=921600,data_bit=8,parity_bit=0,flow_ctrl=0):
         self.__uart = uart
         self.__mode = mode
         self.__message = ''
@@ -56,9 +58,12 @@ class ESP8266:
         self.__value = None
         self.__wait_resp = 0
         self.__send_time = 0
+		self.__baudrate = baudrate
+        self.__data_bit = data_bit
+        self.__parity_bit = parity_bit
+        self.__flow_ctrl = flow_ctrl
         slip.destroy()
-
-        ret = slip.construct(self.__uart, self.__mode, 0)
+        ret = slip.construct(self.__uart, self.__mode,'',self.__baudrate, self.__data_bit,self.__parity_bit,self.__flow_ctrl)
         if ret == RET_CODE.RET_NAT_NOT_OPEN_CODE:
             return ValueError("nat is not open, you should restart device, and try again.")
         elif ret != RET_CODE.RET_SUCCESS_CODE:
