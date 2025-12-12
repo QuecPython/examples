@@ -213,7 +213,7 @@ class ESP8266:
     def stop(self):
         _thread.stop_thread(self.__threadid)
         slip.destroy()
-	self.__sock.close()#释放socket
+		self.__sock.close()#释放socket
         return RET_CODE.RET_SUCCESS_CODE
 
 	# 封装tlv数据包
@@ -258,7 +258,7 @@ class ESP8266:
         return data
     
     def __def__(self):
-	self.stop()
+		self.stop()
    
 	# socket通信(UDP)模块
     def __Socket_Thread(self):
