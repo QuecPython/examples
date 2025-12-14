@@ -49,7 +49,7 @@ class ESP8266:
     AP = 0  # SLIP_INNER
     STA = 1 # SLIP_OUTER
 
-    def __init__(self, uart=UART.UART2, mode=STA, callback=None,baudrate=921600,data_bit=8,parity_bit=0,flow_ctrl=0):
+    def __init__(self, uart=UART.UART2, mode=STA, callback=None,baudrate=921600,data_bit=8,parity_bit=0,stop_bit=1,flow_ctrl=0):
         self.__uart = uart
         self.__mode = mode
         self.__message = ''
@@ -58,12 +58,13 @@ class ESP8266:
         self.__value = None
         self.__wait_resp = 0
         self.__send_time = 0
-		self.__baudrate = baudrate
+        self.__baudrate = baudrate
         self.__data_bit = data_bit
         self.__parity_bit = parity_bit
         self.__flow_ctrl = flow_ctrl
+        self.__stop_bit = stop_bit
         slip.destroy()
-        ret = slip.construct(self.__uart, self.__mode,'',self.__baudrate, self.__data_bit,self.__parity_bit,self.__flow_ctrl)
+        ret = slip.construct(self.__uart, self.__mode,'',self.__baudrate, self.__data_bit,self.__parity_bit,self.__stop_bit,self.__flow_ctrl)
         if ret == RET_CODE.RET_NAT_NOT_OPEN_CODE:
             return ValueError("nat is not open, you should restart device, and try again.")
         elif ret != RET_CODE.RET_SUCCESS_CODE:
@@ -213,7 +214,7 @@ class ESP8266:
     def stop(self):
         _thread.stop_thread(self.__threadid)
         slip.destroy()
-		self.__sock.close()#释放socket
+        self.__sock.close()#释放socket
         return RET_CODE.RET_SUCCESS_CODE
 
 	# 封装tlv数据包
@@ -258,7 +259,7 @@ class ESP8266:
         return data
     
     def __def__(self):
-		self.stop()
+        self.stop()
    
 	# socket通信(UDP)模块
     def __Socket_Thread(self):
