@@ -48,7 +48,7 @@ class RET_CODE():
 class ESP8266:
     AP = 0  # SLIP_INNER
     STA = 1 # SLIP_OUTER
-
+    STATUS_STOPPED = -1
     def __init__(self, uart=UART.UART2, mode=STA, callback=None,baudrate=921600,data_bit=8,parity_bit=0,stop_bit=1,flow_ctrl=0):
         self.__uart = uart
         self.__mode = mode
@@ -63,6 +63,7 @@ class ESP8266:
         self.__parity_bit = parity_bit
         self.__flow_ctrl = flow_ctrl
         self.__stop_bit = stop_bit
+        self.__stop = True
         slip.destroy()
         ret = slip.construct(self.__uart, self.__mode,'',self.__baudrate, self.__data_bit,self.__parity_bit,self.__stop_bit,self.__flow_ctrl)
         if ret == RET_CODE.RET_NAT_NOT_OPEN_CODE:
@@ -72,6 +73,7 @@ class ESP8266:
         self.__queue = Queue(1)
         self.__sock = self.__socket_init()
         self.__threadid = _thread.start_new_thread(self.__Socket_Thread, ())
+        self.__stop = False
 
     def __socket_init(self):
         # 创建一个socket实例
@@ -143,6 +145,8 @@ class ESP8266:
 
 	# 查询网卡状态
     def status(self):
+        if self.__stop == True:
+            return self.STATUS_STOPPED
         self.clear_remain()
         self.__Socket_UDP('F1', '0')
         if self.__err == 1:
@@ -212,6 +216,9 @@ class ESP8266:
     
 	# 释放slip网卡
     def stop(self):
+        if self.__stop == True:
+            return RET_CODE.RET_SUCCESS_CODE
+        self.__stop = True
         _thread.stop_thread(self.__threadid)
         slip.destroy()
         self.__sock.close()#释放socket
@@ -249,7 +256,7 @@ class ESP8266:
 
         # 向服务端发送消息
         server_addr = ('172.16.1.5',1000)
-        #WLAN_log.debug(msg)
+        WLAN_log.debug(msg)
         self.__err = 0
         self.__sock.sendto(msg,server_addr)
         self.__wait_resp = 1
@@ -266,6 +273,7 @@ class ESP8266:
         while True:
             try:
                 data=self.__sock.recv(1024)
+                utime.sleep_ms(10)
             except Exception as recverr:
                 if "110" in str(recverr):
                     if utime.ticks_diff(utime.ticks_ms(), self.__send_time) < 9000:
@@ -278,7 +286,7 @@ class ESP8266:
                     self.__sock = self.__socket_reinit()
             else :
                 value = self.__unpack_tlv_format(data.decode())
-                #WLAN_log.debug('mode: {0}, recv {1} bytes, Data: {2}'.format (value[0],len(data), value[2]))
+                WLAN_log.debug('mode: {0}, recv {1} bytes, Data: {2}'.format (value[0],len(data), value[2]))
                 if value[0] == 'FF':
                     if self.__callback != None:
                         self.__callback(value[2])
